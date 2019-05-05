@@ -26,7 +26,7 @@ defmodule Kerosene do
   def paginate(repo, query, opts) do
     per_page = Keyword.get(opts, :per_page)
     max_page = Keyword.get(opts, :max_page)
-    total_count = get_total_count(opts[:total_count], repo, query)
+    total_count = get_total_count(opts[:total_count], repo, query, opts)
     total_pages = get_total_pages(total_count, per_page)
     page = get_page(opts, total_pages)
     offset = get_offset(total_count, page, per_page)
@@ -40,15 +40,15 @@ defmodule Kerosene do
       params: opts[:params]
     }
 
-    {get_items(repo, query, per_page, offset), kerosene}
+    {get_items(repo, query, per_page, offset, opts), kerosene}
   end
 
-  defp get_items(repo, query, nil, _), do: repo.all(query)
-  defp get_items(repo, query, limit, offset) do
+  defp get_items(repo, query, nil, _, opts), do: repo.all(query, opts)
+  defp get_items(repo, query, limit, offset, opts) do
     query
     |> limit(^limit)
     |> offset(^offset)
-    |> repo.all
+    |> repo.all(opts)
   end
 
   defp get_offset(total_pages, page, per_page) do
@@ -65,13 +65,13 @@ defmodule Kerosene do
 
   defp get_total_count(count, _repo, _query) when is_integer(count) and count >= 0, do: count
 
-  defp get_total_count(_count, repo, query) do
+  defp get_total_count(_count, repo, query, opts) do
     total_pages =
       query
       |> exclude(:preload)
       |> exclude(:order_by)
       |> total_count()
-      |> repo.one()
+      |> repo.one(opts)
 
     total_pages || 0
   end
